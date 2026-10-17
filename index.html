@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080812">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-title" content="地推运维">
+<meta name="mobile-web-app-capable" content="yes">
+<title>地推运维 v16</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>window.L||document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>')</script>
+<style>
+:root{
+  --bg:#080812;--card:#121224;--card2:#1a1a32;
+  --accent:#00c2ff;--purple:#7b5cff;
+  --text:#e0e0e8;--text2:#7a7a94;
+  --mt:#ff9f1c;--gs:#3d7fff;
+  --st-n:#1dd176;--st-f:#0ce6c4;--st-o:#ffb347;--st-e:#ff3b5c;
+  --safe:env(safe-area-inset-bottom,16px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none}
+#map{position:fixed;inset:0;z-index:1}
+
+/* ── 顶栏 ── */
+#tb{position:fixed;top:6px;left:8px;right:8px;z-index:1000;background:rgba(12,12,30,.94);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:5px 8px;display:flex;flex-direction:column;gap:3px;backdrop-filter:blur(16px);box-shadow:0 2px 16px rgba(0,0,0,.5)}
+#tb .r{display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none;mask-image:linear-gradient(90deg,#000 94%,transparent 100%)}
+#tb .r::-webkit-scrollbar{display:none}
+#tb .logo{font-size:15px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:-.4px;padding-right:4px}
+#tb .logo span{color:var(--accent)}
+#tb .tag{border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.07);color:var(--text2);transition:all .15s;line-height:18px;white-space:nowrap}
+#tb .tag.on{color:#fff}
+#tb .tag.b-mt.on{background:var(--mt);border-color:var(--mt)}
+#tb .tag.b-gs.on{background:var(--gs);border-color:var(--gs)}
+#tb .tag.b-pl.on{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:var(--text2)}
+#tb .tag.p-me.on{background:#7b5cff;border-color:#7b5cff}
+#tb .tag.p-you.on{background:#00b8d4;border-color:#00b8d4}
+#tb .tag.p-ta.on{background:#ff6b81;border-color:#ff6b81}
+#tb .tag.s-n.on{background:var(--st-n);border-color:var(--st-n)}
+#tb .tag.s-f.on{background:var(--st-f);border-color:var(--st-f)}
+#tb .tag.s-o.on{background:var(--st-o);border-color:var(--st-o)}
+#tb .tag.s-e.on{background:var(--st-e);border-color:var(--st-e)}
+#tb .sep{width:1px;height:16px;background:rgba(255,255,255,.06);flex-shrink:0}
+#tb .sbtn{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:auto;transition:all .15s}
+#tb .sbtn:active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ── 日期筛选行 ── */
+#tb .dr{display:flex;align-items:center;gap:4px;overflow-x:auto;scrollbar-width:none}
+#tb .dr::-webkit-scrollbar{display:none}
+#tb .dtag{border-radius:8px;padding:3px 9px;font-size:10px;font-weight:600;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.07);color:var(--text2);transition:all .15s;line-height:18px;white-space:nowrap}
+#tb .dtag.on{background:rgba(0,194,255,.18);color:var(--accent);border-color:rgba(0,194,255,.3)}
+#tb .dr .dr-custom{flex-shrink:0;display:flex;align-items:center;gap:2px}
+#tb .dr .dr-custom input{width:72px;padding:2px 4px;border-radius:5px;border:1px solid rgba(255,255,255,.08);background:var(--card2);color:var(--text);font-size:10px;outline:none}
+#tb .dr .dr-custom span{font-size:10px;color:var(--text2)}
+
+/* ── 计数 ── */
+#cnt{position:fixed;top:98px;left:50%;transform:translateX(-50%);z-index:997;background:rgba(18,18,36,.88);border-radius:8px;padding:3px 12px;font-size:11px;color:var(--text2);border:1px solid rgba(255,255,255,.04);pointer-events:none;backdrop-filter:blur(8px)}
+#cnt b{color:var(--accent)}
+
+/* ── 右侧按钮 ── */
+.rbtn{position:fixed;right:8px;z-index:997;width:30px;height:30px;border-radius:10px;background:rgba(18,18,36,.88);border:1px solid rgba(255,255,255,.05);color:var(--text);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);transition:all .12s}
+.rbtn:active{background:var(--card2)}
+#lbtn{top:100px}#statbtn{top:136px}#todobtn{top:172px}
+
+/* ── 右下角导出导入 ── */
+#aux{position:fixed;bottom:calc(22px + var(--safe));right:16px;z-index:1000;display:flex;flex-direction:column;gap:3px;align-items:flex-end}
+.aux-btn{height:28px;padding:0 10px;border-radius:8px;background:rgba(18,18,36,.88);border:1px solid rgba(255,255,255,.05);color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;backdrop-filter:blur(8px);transition:all .12s;white-space:nowrap}
+.aux-btn:active{color:var(--accent);border-color:var(--accent)}
+.aux-btn .ab-ico{font-size:12px}
+
+/* ── Overlay ── */
+.ov{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .18s;backdrop-filter:blur(3px)}
+.ov.open{opacity:1;pointer-events:auto}
+.pn{width:100%;max-height:84vh;background:linear-gradient(180deg,var(--card) 0%,var(--bg) 100%);border-radius:16px 16px 0 0;padding:18px 14px calc(18px + var(--safe));box-shadow:0 -6px 24px rgba(0,0,0,.6);overflow-y:auto;transform:translateY(20px);transition:transform .18s;-webkit-overflow-scrolling:touch}
+.ov.open .pn{transform:translateY(0)}
+.pn h2{font-size:17px;margin-bottom:10px;font-weight:700}
+
+/* ── 表单 ── */
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.fg label{font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.fg input,.fg textarea{padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:var(--card2);color:var(--text);font-size:14px;outline:none;font-family:inherit}
+.fg input:focus,.fg textarea:focus{border-color:var(--accent)}
+.tr{display:flex;gap:5px}
+.tr3{display:flex;gap:5px}
+.tgr{flex:1;padding:9px 2px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:var(--card2);text-align:center;font-size:12px;font-weight:700;cursor:pointer;color:var(--text2);transition:all .12s}
+.tgr.sel{border-color:transparent;color:#fff}
+.tgr.b-mt.sel{background:var(--mt)}.tgr.b-gs.sel{background:var(--gs)}
+.tgr.p-me.sel{background:#7b5cff}.tgr.p-you.sel{background:#00b8d4}.tgr.p-ta.sel{background:#ff6b81}
+.tgr.s-n.sel{background:var(--st-n)}.tgr.s-f.sel{background:var(--st-f)}
+.tgr.s-o.sel{background:var(--st-o)}.tgr.s-e.sel{background:var(--st-e)}
+
+/* ── 待办勾选 + 优先级 ── */
+.pri-sel{display:flex;gap:4px;margin-bottom:6px}
+.pri-btn{padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.06);background:var(--card2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.pri-btn.sel{border-color:transparent}
+.pri-btn.p1.sel{background:#ff3b5c;color:#fff}.pri-btn.p2.sel{background:#ffb347;color:#fff}.pri-btn.p3.sel{background:#1dd176;color:#fff}
+.ch-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ch-item{flex:1;min-width:calc(50% - 6px);padding:11px 0;border-radius:9px;border:1px solid rgba(255,255,255,.06);background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:all .12s}
+.ch-item:active{transform:scale(.97)}
+.todo-chk{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--text2);cursor:pointer}
+.todo-chk input{accent-color:var(--accent)}
+
+/* ── 处理记录 ── */
+.rl{display:flex;flex-direction:column;gap:5px;margin-bottom:6px;max-height:140px;overflow-y:auto}
+.ri{background:var(--card2);border-radius:8px;padding:8px 10px;font-size:12px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.ri .rit{color:var(--text2);font-size:10px;flex-shrink:0;white-space:nowrap}
+.ri .rix{color:var(--text);word-break:break-all;line-height:1.4}
+.ri .rid{color:var(--st-e);font-size:11px;cursor:pointer;padding:0 3px;flex-shrink:0}
+.ra{display:flex;gap:5px}
+.ra input{flex:1;padding:9px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:var(--card2);color:var(--text);font-size:13px;outline:none}
+.ra button{padding:9px 13px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+
+/* ── 现场拍照 ── */
+.photo-section{margin-bottom:8px}
+.photo-section label{font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:3px}
+.photo-upload-btn{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border-radius:8px;background:var(--card2);border:1px dashed rgba(0,194,255,.3);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:6px}
+.photo-upload-btn:active{background:rgba(0,194,255,.1)}
+.photo-thumbs{display:flex;gap:6px;flex-wrap:wrap}
+.photo-thumb{position:relative;width:56px;height:56px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,.06)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-thumb .photo-del{position:absolute;top:0;right:0;width:16px;height:16px;border-radius:0 8px 0 8px;background:rgba(255,59,92,.85);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+.photo-lightbox{position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
+.photo-lightbox.open{opacity:1;pointer-events:auto}
+.photo-lightbox img{max-width:96vw;max-height:90vh;border-radius:10px}
+.photo-lightbox .pl-close{position:fixed;top:16px;right:16px;z-index:6001;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* ── 按钮 ── */
+.btn{width:100%;padding:11px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .12s}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff}
+.btn-dan{background:var(--st-e);color:#fff}
+.btn-out{background:rgba(255,255,255,.03);color:var(--text);border:1px solid rgba(255,255,255,.06)}
+.btn+.btn{margin-top:5px}
+
+/* ── 今日待办面板 ── */
+#todo-panel{position:fixed;inset:0;z-index:3500;display:flex;align-items:flex-end;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .18s}
+#todo-panel.open{opacity:1;pointer-events:auto}
+#todo-panel .tp-inner{width:100%;max-height:72vh;background:linear-gradient(180deg,var(--card) 0%,var(--bg) 100%);border-radius:16px 16px 0 0;padding:16px 14px calc(16px + var(--safe));box-shadow:0 -6px 24px rgba(0,0,0,.6);overflow-y:auto;transform:translateY(20px);transition:transform .18s;-webkit-overflow-scrolling:touch}
+#todo-panel.open .tp-inner{transform:translateY(0)}
+#todo-panel h3{text-align:center;margin-bottom:10px;font-size:16px;font-weight:700}
+.tp-item{display:flex;align-items:center;gap:8px;padding:10px 8px;border-radius:10px;margin-bottom:4px;background:var(--card2);border:1px solid rgba(255,255,255,.03);cursor:pointer;transition:all .12s}
+.tp-item:active{background:rgba(0,194,255,.06)}
+.tp-item.done{opacity:.4}
+.tp-item .tp-pri{width:6px;height:28px;border-radius:3px;flex-shrink:0}
+.tp-item .tp-cb{flex-shrink:0;width:20px;height:20px;accent-color:var(--accent)}
+.tp-item .tp-info{flex:1;min-width:0}
+.tp-item .tp-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tp-item .tp-meta{font-size:10px;color:var(--text2);margin-top:1px}
+.tp-item .tp-actions{display:flex;gap:4px;flex-shrink:0}
+.tp-item .tp-act-btn{width:26px;height:26px;border-radius:7px;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
+.tp-item .tp-act-btn.tp-nav{background:rgba(0,194,255,.12);color:var(--accent)}
+.tp-item .tp-act-btn.tp-route{background:rgba(123,92,255,.12);color:var(--purple)}
+.tp-empty{text-align:center;padding:28px 0;color:var(--text2);font-size:12px}
+.tp-close{width:100%;padding:10px;margin-top:6px;border:none;border-radius:10px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+.tp-log-hd{font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 6px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+.tp-log-item{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.03);margin-bottom:5px;font-size:11px;line-height:1.5}
+.tp-log-item .lg-time{color:var(--text2);font-size:10px}
+.tp-log-item .lg-name{font-weight:600;color:var(--accent)}
+.tp-log-item .lg-status{font-weight:600}
+.tp-log-item .lg-note{color:var(--text2)}
+
+/* ── 批量操作 ── */
+#batch-bar{position:fixed;bottom:0;left:0;right:0;z-index:1500;background:rgba(18,18,36,.96);backdrop-filter:blur(18px);padding:10px 14px calc(10px + var(--safe));border-top:1px solid rgba(255,255,255,.06);display:none;flex-direction:column;gap:6px}
+#batch-bar.show{display:flex}
+#batch-bar .bb-top{display:flex;align-items:center;justify-content:space-between}
+#batch-bar .bb-title{font-size:13px;font-weight:700;color:var(--text)}
+#batch-bar .bb-clear{font-size:11px;color:var(--accent);cursor:pointer;font-weight:600}
+#batch-bar .bb-actions{display:flex;gap:6px}
+.bb-btn{flex:1;padding:9px 0;border-radius:9px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap}
+.bb-btn:active{transform:scale(.96)}
+.bb-btn.bb-status{background:rgba(0,194,255,.12);color:var(--accent)}
+.bb-btn.bb-person{background:rgba(123,92,255,.12);color:var(--purple)}
+.bb-btn.bb-del{background:rgba(255,59,92,.12);color:var(--st-e)}
+.batch-mode .rbtn,#batch-bar.show ~ .rbtn{display:none}
+.marker-selected{filter:drop-shadow(0 0 6px var(--accent)) brightness(1.3)}
+
+/* ── 路线规划面板 ── */
+#route-panel{position:fixed;inset:0;z-index:4500;display:flex;align-items:flex-end;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .18s}
+#route-panel.open{opacity:1;pointer-events:auto}
+#route-panel .rp-inner{width:100%;max-height:72vh;background:linear-gradient(180deg,var(--card) 0%,var(--bg) 100%);border-radius:16px 16px 0 0;padding:16px 14px calc(16px + var(--safe));box-shadow:0 -6px 24px rgba(0,0,0,.6);overflow-y:auto;transform:translateY(20px);transition:transform .18s;-webkit-overflow-scrolling:touch}
+#route-panel.open .rp-inner{transform:translateY(0)}
+#route-panel h3{text-align:center;margin-bottom:10px;font-size:16px;font-weight:700}
+.rp-list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.rp-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;background:var(--card2);border:1px solid rgba(255,255,255,.04);cursor:grab}
+.rp-item .rp-idx{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#080812;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rp-item .rp-name{flex:1;font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rp-item .rp-remove{width:22px;height:22px;border-radius:50%;background:rgba(255,59,92,.15);color:var(--st-e);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;border:none}
+.rp-item .rp-drag{color:var(--text2);font-size:14px;cursor:grab;flex-shrink:0}
+.rp-plan-btn{width:100%;padding:11px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--purple),var(--accent));color:#fff;margin-bottom:4px;transition:all .12s}
+.rp-plan-btn:active{transform:scale(.97)}
+.rp-clear-btn{width:100%;padding:9px;border:none;border-radius:10px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+.rp-empty{text-align:center;padding:22px 0;color:var(--text2);font-size:12px}
+.rp-close{width:100%;padding:10px;margin-top:4px;border:none;border-radius:10px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+
+/* ── 数据看板增强 ── */
+#sov2{position:fixed;inset:0;z-index:4000;display:flex;align-items:flex-end;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .18s}
+#sov2.open{opacity:1;pointer-events:auto}
+#sov2 .si2{width:100%;background:var(--card);border-radius:16px 16px 0 0;padding:16px 12px calc(16px + var(--safe));transform:translateY(20px);transition:transform .18s;max-height:72vh;overflow-y:auto}
+#sov2.open .si2{transform:translateY(0)}
+#sov2 h3{text-align:center;margin-bottom:12px;font-size:16px;font-weight:700}
+.sx{width:100%;padding:10px;margin-top:8px;border:none;border-radius:10px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+
+/* 看板卡片 */
+.db-card{background:var(--card2);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.03)}
+.db-card-title{font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.db-kpi-row{display:flex;gap:8px;margin-bottom:8px}
+.db-kpi{flex:1;text-align:center;padding:8px 4px;border-radius:8px;background:rgba(255,255,255,.02)}
+.db-kpi .db-kpi-val{font-size:20px;font-weight:800;color:var(--accent)}
+.db-kpi .db-kpi-label{font-size:9px;color:var(--text2);margin-top:2px}
+
+/* 简易柱状图 */
+.db-bar-chart{display:flex;align-items:flex-end;gap:3px;height:80px;padding-top:4px}
+.db-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
+.db-bar{width:100%;border-radius:3px 3px 0 0;min-height:2px;transition:height .3s}
+.db-bar-label{font-size:8px;color:var(--text2);margin-top:2px;white-space:nowrap}
+
+/* 饼图 - conic-gradient */
+.db-pie-wrap{display:flex;align-items:center;gap:12px;margin-top:4px}
+.db-pie{width:90px;height:90px;border-radius:50%;flex-shrink:0}
+.db-pie-legend{display:flex;flex-direction:column;gap:4px;flex:1}
+.db-pie-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.db-pie-legend-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+
+/* 趋势迷你图 */
+.db-trend-row{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}
+.db-trend-label{font-size:10px;color:var(--text2);width:32px;text-align:right;flex-shrink:0}
+.db-trend-bar{flex:1;height:10px;border-radius:3px;background:rgba(0,194,255,.15);position:relative;overflow:hidden}
+.db-trend-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
+
+/* 每日活动 */
+.day-item{background:var(--card2);border-radius:10px;padding:8px 10px;margin-bottom:5px;border:1px solid rgba(255,255,255,.03);cursor:pointer}
+.day-row{display:flex;align-items:center;gap:8px}
+.day-date{font-size:12px;font-weight:700;flex-shrink:0;min-width:60px}
+.day-date small{font-size:9px;color:var(--text2);font-weight:600;margin-left:2px}
+.day-sub{flex:1;font-size:10px;color:var(--text2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.day-total{width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.05);color:var(--text2);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.day-item.has .day-total{background:rgba(0,194,255,.15);color:var(--accent)}
+.day-det{display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.05)}
+.day-det .dd{font-size:11px;color:var(--text2);padding:2px 0;line-height:1.5;word-break:break-all}
+.day-det .dd b{color:var(--text);font-weight:600}
+.day-det .dd.add b{color:var(--accent)}
+.day-det .dd.rec b{color:var(--st-n)}
+.day-det .dd.st b{color:var(--st-o)}
+
+/* ── POI 搜索面板 ── */
+#sov{position:fixed;inset:0;z-index:3000;display:flex;align-items:flex-end;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .18s}
+#sov.open{opacity:1;pointer-events:auto}
+#sov .sin{width:100%;background:var(--card);border-radius:16px 16px 0 0;padding:16px 12px calc(16px + var(--safe));box-shadow:0 -6px 24px rgba(0,0,0,.6);transform:translateY(20px);transition:transform .18s;max-height:62vh;display:flex;flex-direction:column}
+#sov.open .sin{transform:translateY(0)}
+#sov .stabs{display:flex;gap:0;margin-bottom:8px;background:var(--card2);border-radius:8px;padding:2px}
+#sov .stab{flex:1;text-align:center;padding:6px 0;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .12s}
+#sov .stab.on{background:rgba(0,194,255,.15);color:var(--accent)}
+#sov input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.07);background:var(--card2);color:var(--text);font-size:14px;outline:none;margin-bottom:6px}
+#sov .sl{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:13px}
+.sr{display:flex;align-items:center;gap:8px;padding:11px 8px;border-radius:8px;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;transition:background .1s}
+.sr:active{background:rgba(0,194,255,.04)}
+.sr .sric{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700}
+.sr .srb{flex:1;min-width:0}
+.sr .srn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sr .srs{font-size:10px;color:var(--text2);margin-top:2px}
+.sr .srt{font-size:9px;padding:2px 7px;border-radius:7px;font-weight:600;flex-shrink:0;white-space:nowrap}
+#sc{width:100%;padding:10px;margin-top:6px;border:none;border-radius:8px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;flex-shrink:0}
+.sn{text-align:center;padding:22px;color:var(--text2);font-size:12px}
+.sr-poi .sric{background:var(--accent);border-radius:8px}
+.sr-poi .srp-dist{font-size:9px;color:var(--text2)}
+
+/* ── 导航 ── */
+.ns{position:fixed;inset:0;z-index:5000;display:flex;align-items:flex-end;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .18s}
+.ns.open{opacity:1;pointer-events:auto}
+.nsi{width:100%;background:var(--card);border-radius:16px 16px 0 0;padding:18px 14px calc(18px + var(--safe));box-shadow:0 -6px 24px rgba(0,0,0,.6);transform:translateY(20px);transition:transform .18s}
+.ns.open .nsi{transform:translateY(0)}
+.ns h3{text-align:center;margin-bottom:14px;font-size:16px;font-weight:700}
+.no{display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;margin-bottom:5px;cursor:pointer;background:var(--card2);border:1px solid rgba(255,255,255,.04);font-size:14px;font-weight:600}
+.no:active{background:rgba(0,194,255,.04)}
+.no .ni{font-size:20px;width:28px;text-align:center}
+.no .nb{flex:1}.no .nt{font-size:10px;color:var(--text2)}
+.nc{width:100%;padding:11px;margin-top:4px;border:none;border-radius:10px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+
+/* ── 统计 ── */
+#sov2 .st-sum{text-align:center;font-size:13px;color:var(--text2);margin-bottom:10px}
+#sov2 .st-sum b{color:#fff;font-size:18px}
+#sov2 .st-tabs{display:flex;gap:4px;margin-bottom:12px;background:var(--card2);border-radius:8px;padding:2px}
+#sov2 .st-tab{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all .12s}
+#sov2 .st-tab.on{background:rgba(0,194,255,.15);color:var(--accent)}
+#sov2 .st-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:4px}
+@media(max-width:420px){#sov2 .st-grid3{grid-template-columns:1fr}}
+#sov2 .st-grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#sov2 .st-pcard{background:var(--card2);border-radius:10px;padding:6px;overflow:hidden}
+#sov2 .st-phead{text-align:center;padding:5px 6px;border-radius:6px;font-size:11px;font-weight:700;margin-bottom:4px}
+#sov2 .st-bcard{margin-bottom:3px}
+#sov2 .st-bcard2{background:var(--card2);border-radius:10px;padding:10px 12px}
+#sov2 .st-bname{font-size:12px;font-weight:700;margin-bottom:3px}
+#sov2 .st-bname b{color:var(--text);font-size:16px}
+#sov2 .st-brow{display:flex;gap:3px;flex-wrap:wrap}
+#sov2 .st-chip{padding:2px 6px;border-radius:5px;font-size:10px;color:var(--text2);background:rgba(255,255,255,.03);white-space:nowrap}
+#sov2 .st-chip.on{font-weight:600}
+#sov2 .st-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.02)}
+#sov2 .st-sdot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+#sov2 .st-sname{flex:1;font-size:12px;color:var(--text2)}
+#sov2 .st-sval{font-size:14px;font-weight:700;color:#fff}
+
+/* ── Toast ── */
+#toast{position:fixed;top:130px;left:50%;transform:translateX(-50%);z-index:3000;background:var(--card);color:var(--text);padding:8px 16px;border-radius:16px;font-size:12px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.6);opacity:0;transition:opacity .2s;pointer-events:none;border:1px solid rgba(255,255,255,.05)}
+#toast.show{opacity:1}#toast.w{border-color:var(--st-o);color:var(--st-o)}
+
+/* ── 自动保存指示 ── */
+#save-dot{position:fixed;top:10px;right:10px;z-index:9999;width:7px;height:7px;border-radius:50%;background:var(--st-n);opacity:0;transition:opacity .3s}
+#save-dot.pulse{opacity:1;animation:sp .6s ease-out}
+@keyframes sp{0%{transform:scale(1);opacity:1}100%{transform:scale(2.5);opacity:0}}
+
+/* 地图标记待办角标 */
+.todo-badge{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:var(--st-o);border:2px solid var(--bg);z-index:10}
+</style>
+</head>
+<body>
+
+<div id="tb">
+  <div class="r">
+    <div class="logo"><span>地推</span>运维</div>
+    <div class="sep"></div>
+    <div class="tag b-mt on" data-brand="美团">美团</div>
+    <div class="tag b-gs on" data-brand="怪兽">怪兽</div>
+    <div class="tag b-pl" style="pointer-events:none;opacity:.3">+</div>
+    <button class="sbtn">🔍</button>
+  </div>
+  <div class="r">
+    <div class="sep" style="margin-left:2px"></div>
+    <div class="tag p-me on" data-person="我">我</div>
+    <div class="tag p-you on" data-person="你">你</div>
+    <div class="tag p-ta on" data-person="他">他</div>
+    <div class="sep"></div>
+    <div class="tag s-n on" data-status="正常">正常</div>
+    <div class="tag s-f on" data-status="满仓">满仓</div>
+    <div class="tag s-o on" data-status="离线">离线</div>
+    <div class="tag s-e on" data-status="空仓">空仓</div>
+  </div>
+  <!-- 日期筛选行 -->
+  <div class="r dr">
+    <div class="dtag on" data-drange="all">全部</div>
+    <div class="dtag" data-drange="today">今天</div>
+    <div class="dtag" data-drange="week">本周</div>
+    <div class="dtag" data-drange="month">本月</div>
+    <div class="dr-custom">
+      <input type="date" id="dr-start" value=""> <span>~</span>
+      <input type="date" id="dr-end" value="">
+    </div>
+  </div>
+</div>
+
+<div id="save-dot"></div>
+<div id="cnt"></div>
+<button id="lbtn" class="rbtn">◎</button>
+<button id="statbtn" class="rbtn">📊</button>
+<button id="todobtn" class="rbtn" style="font-size:15px">☑</button>
+<div id="map"></div>
+
+<div id="aux">
+  <button class="aux-btn" id="exp-btn"><span class="ab-ico">📤</span>导出备份</button>
+  <button class="aux-btn" id="imp-btn"><span class="ab-ico">📥</span>导入恢复</button>
+</div>
+
+<!-- 批量操作底栏 -->
+<div id="batch-bar">
+  <div class="bb-top">
+    <div class="bb-title">已选 <span id="bb-cnt">0</span> 个</div>
+    <div class="bb-clear" onclick="bclear()">清除选择</div>
+  </div>
+  <div class="bb-actions">
+    <button class="bb-btn bb-status" onclick="bbatch('status')">改状态</button>
+    <button class="bb-btn bb-person" onclick="bbatch('person')">改归属</button>
+    <button class="bb-btn bb-del" onclick="bbatch('del')">删除</button>
+    <button class="bb-btn bb-cancel" onclick="tbatch()">取消</button>
+  </div>
+</div>
+
+
+
+<!-- 搜索面板 -->
+<div id="sov"><div class="sin">
+  <div class="stabs"><div class="stab on" data-mode="poi">搜地点</div><div class="stab" data-mode="rec">搜记录</div></div>
+  <input id="spi" placeholder="搜索地点，快速定位..." autocomplete="off" oninput="window._shi(this.value)" onkeydown="if(event.key==='Enter')window._shs(this.value)">
+  <div class="sl" id="sl"></div>
+  <button id="sc">关闭</button>
+</div></div>
+
+<!-- 添加/编辑表单 -->
+<div class="ov" id="fov"><div class="pn"><h2 id="ft">添加运维点</h2>
+<div class="fg"><label>归属</label><div class="tr3" id="ps"><div class="tgr p-me sel" data-person="我">我</div><div class="tgr p-you" data-person="你">你</div><div class="tgr p-ta" data-person="他">他</div></div></div>
+<div class="fg"><label>品牌</label><div class="tr" id="bs"><div class="tgr b-mt sel" data-brand="美团">美团</div><div class="tgr b-gs" data-brand="怪兽">怪兽</div></div></div>
+<div class="fg"><label>状态</label><div class="tr" id="ss"><div class="tgr s-n sel" data-status="正常">正常</div><div class="tgr s-f" data-status="满仓">满仓</div><div class="tgr s-o" data-status="离线">离线</div><div class="tgr s-e" data-status="空仓">空仓</div></div></div>
+<!-- 待办 + 优先级 -->
+<div class="todo-chk"><input type="checkbox" id="ftodo"> <span>待处理</span></div>
+<div class="pri-sel" id="fpri"><label style="font-size:9px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.3px;width:100%;margin-bottom:2px;display:block">优先级</label>
+  <button class="pri-btn p1" data-pri="1">高</button>
+  <button class="pri-btn p2 sel" data-pri="2">中</button>
+  <button class="pri-btn p3" data-pri="3">低</button>
+</div>
+<div class="fg"><label>名称</label><input id="fn" placeholder="如: XX小区北门"></div>
+<div class="fg"><label>地址/备注</label><input id="fa" placeholder="补充信息"></div>
+<div class="fg"><label>状态备注</label><input id="fnote" placeholder="状态变更说明（变更时自动记录日志）"></div>
+<div style="font-size:10px;color:#555;text-align:center;margin-bottom:4px">在地图上点击可重新定位</div>
+<button class="btn btn-out" id="fsearch" style="margin-bottom:5px" type="button">🔍 搜索定位</button>
+<button class="btn btn-pri" id="bsv">保存</button><button class="btn btn-out" id="bfc">取消</button></div></div>
+
+<!-- 详情面板 -->
+<div class="ov" id="dov"><div class="pn">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+<span id="dp" style="padding:3px 10px;border-radius:7px;font-size:11px;font-weight:700"></span>
+<span id="db" style="padding:3px 10px;border-radius:7px;font-size:11px;font-weight:700"></span>
+<span id="ds" style="padding:3px 10px;border-radius:7px;font-size:11px;font-weight:700"></span>
+<h2 id="dn" style="margin:0;font-size:16px"></h2>
+</div>
+<div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+<div>地址: <span id="da">--</span></div>
+<div>创建: <span id="dt">--</span></div>
+</div>
+<!-- 待办 + 优先级（详情） -->
+<div class="todo-chk"><input type="checkbox" id="dtodo"> <span>待处理</span></div>
+<div class="pri-sel" id="dpri" style="margin-bottom:8px">
+  <button class="pri-btn p1" data-pri="1">高</button>
+  <button class="pri-btn p2" data-pri="2">中</button>
+  <button class="pri-btn p3" data-pri="3">低</button>
+</div>
+<!-- 现场拍照 -->
+<div class="photo-section">
+  <label>现场照片</label>
+  <div style="display:flex;gap:6px;margin-bottom:6px">
+    <div class="photo-upload-btn" style="flex:1;justify-content:center" onclick="document.getElementById('photo-cam').click()">📷 拍照</div>
+    <div class="photo-upload-btn" style="flex:1;justify-content:center" onclick="document.getElementById('photo-gallery').click()">🖼️ 相册上传</div>
+  </div>
+  <input type="file" id="photo-cam" accept="image/*" capture="environment" style="display:none" onchange="uploadPhotos(event)">
+  <input type="file" id="photo-gallery" accept="image/*" multiple style="display:none" onchange="uploadPhotos(event)">
+  <div class="photo-thumbs" id="photo-thumbs"></div>
+</div>
+<div class="fg"><label>处理记录</label>
+<div class="rl" id="rl"></div>
+<div class="ra"><input id="rdi" placeholder="添加处理记录..."><button id="rda">+</button></div>
+</div>
+<div style="display:flex;gap:8px">
+  <button class="btn btn-pri" id="bnv" style="flex:1">导航前往</button>
+  <button class="btn btn-out" id="brt" style="flex:1;font-size:12px">+路线</button>
+  <button class="btn btn-out" id="bed" style="flex:1">编辑</button>
+</div>
+<button class="btn btn-dan" id="bdl">删除</button>
+<button class="btn btn-out" id="bdc">返回</button>
+</div></div>
+
+<!-- 今日待办面板 -->
+<div id="todo-panel"><div class="tp-inner">
+  <h3>今日待办</h3>
+  <div id="tp-list"></div>
+  <div class="tp-log-hd" id="tp-log-hd" style="display:none">今日日志</div>
+  <div id="tp-log"></div>
+  <button class="tp-close" onclick="ctp()">关闭</button>
+</div></div>
+
+<!-- 路线规划面板 -->
+<div id="route-panel"><div class="rp-inner">
+  <h3>拜访路线</h3>
+  <div class="rp-list" id="rp-list"></div>
+  <button class="rp-plan-btn" onclick="planRoute()">规划路线</button>
+  <button class="rp-clear-btn" onclick="crp()">清空路线</button>
+  <button class="rp-close" onclick="crp();ctp()">关闭</button>
+</div></div>
+
+<!-- 照片灯箱 -->
+<div class="photo-lightbox" id="photo-lb" onclick="clb()"><div class="pl-close" onclick="clb()">✕</div><img id="photo-lb-img" src="" alt="照片"></div>
+
+<!-- 批量操作选择面板 -->
+<div class="ov" id="chov"><div class="pn">
+  <h2 id="ch-title">选择</h2>
+  <div class="ch-list" id="ch-list"></div>
+  <button class="btn btn-out" id="ch-cancel">取消</button>
+</div></div>
+
+<!-- 导航选择 -->
+<div class="ns" id="nsheet"><div class="nsi"><h3>选择导航</h3><div id="no"></div><button class="nc" id="nc">取消</button></div></div>
+
+<!-- 统计面板 -->
+<div id="sov2"><div class="si2"><h3>运维点统计</h3><div id="sbody"></div><button class="sx" id="sx">关闭</button></div></div>
+
+<div id="toast"></div>
+
+<script>
+// ===== 高德 API Key =====
+const AK='adb2279ddafc64e73ace3126eb1e3428';
+
+// ===== 固定存储Key —— 不再随版本号变化 =====
+const LK='ditui_yunwei_data';
+
+// ===== 默认示例数据 =====
+function _genDefaults(){
+  const n=Date.now();
+  pts=[
+    {id:'d1',name:'国贸一期充电站',lat:39.9087,lng:116.4605,brand:'美团',person:'我',status:'正常',addr:'朝阳区建国门外大街1号',todo:false,priority:2,records:[],photos:[],created:n,updated:n},
+    {id:'d2',name:'三里屯太古里',lat:39.9325,lng:116.4547,brand:'怪兽',person:'你',status:'正常',addr:'朝阳区三里屯路19号',todo:false,priority:2,records:[],photos:[],created:n,updated:n},
+    {id:'d3',name:'望京SOHO充电柜',lat:40.0013,lng:116.4824,brand:'美团',person:'他',status:'满仓',addr:'朝阳区望京街10号',todo:false,priority:1,records:[],photos:[],created:n,updated:n},
+    {id:'d4',name:'中关村创业大街',lat:39.9835,lng:116.3073,brand:'怪兽',person:'我',status:'离线',addr:'海淀区海淀西大街48号',todo:true,priority:1,records:[],photos:[],created:n,updated:n},
+    {id:'d5',name:'五道口购物中心',lat:39.9930,lng:116.3387,brand:'美团',person:'你',status:'空仓',addr:'海淀区成府路28号',todo:true,priority:3,records:[],photos:[],created:n,updated:n},
+    {id:'d6',name:'西单大悦城',lat:39.9124,lng:116.3741,brand:'怪兽',person:'他',status:'正常',addr:'西城区西单北大街131号',todo:false,priority:3,records:[],photos:[],created:n,updated:n}
+  ];
+  pts=pts.map(ensureFields);
+}
+
+// ===== 文件持久化（File System Access API） =====
+let _dfh=null;
+async function _initFile(){
+  try{
+    const db=await new Promise((r,j)=>{const q=indexedDB.open('ditui_db',1);q.onupgradeneeded=()=>q.result.createObjectStore('h');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)});
+    const h=await new Promise((r,j)=>{const t=db.transaction('h','readonly');const q=t.objectStore('h').get('df');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)});
+    if(h){_dfh=h}
+  }catch(e){}
+  if(_dfh){
+    try{
+      const f=await _dfh.getFile();const t=await f.text();
+      localStorage.setItem(LK,t);mg();
+      return;
+    }catch(e){_dfh=null}
+  }
+  // 没有文件句柄：localStorage 兜底
+  mg();
+  if(pts.length===0&&!localStorage.getItem(LK)){_genDefaults();sv();}
+}
+async function _writeFile(){
+  if(!_dfh)return;
+  try{
+    const o={mode:'readwrite'};
+    if((await _dfh.queryPermission(o))!=='granted'){
+      if((await _dfh.requestPermission(o))!=='granted')return;
+    }
+    const w=await _dfh.createWritable();
+    await w.write(JSON.stringify({v:1,pts:pts,aP:[...aP],aB:[...aB],aS:[...aS],logs:_logs},null,2));
+    await w.close();
+  }catch(e){}
+}
+
+const BR={美团:'#ff9f1c',怪兽:'#3d7fff'};
+const PR={我:'#7b5cff',你:'#00b8d4',他:'#ff6b81'};
+const ST={正常:'#1dd176',满仓:'#0ce6c4',离线:'#ffb347',空仓:'#ff3b5c'};
+
+// 状态变更日志
+let _logs=[];
+const SS={正常:'●',满仓:'◆',离线:'◐',空仓:'○'};
+const PRI_LABEL=['','高','中','低'],PRI_COLOR=['','#ff3b5c','#ffb347','#1dd176'];
+
+// ===== 工具函数 =====
+const _ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>_ESC_MAP[c])}
+function _pad2(n){return String(n).padStart(2,'0')}
+function _dayKey(d){return d.getFullYear()+'/'+_pad2(d.getMonth()+1)+'/'+_pad2(d.getDate())}
+function _timeDayKey(s){
+  if(!s)return '';
+  const m=String(s).match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  return m?m[1]+'/'+_pad2(+m[2])+'/'+_pad2(+m[3]):'';
+}
+function _addLog(pointId,pointName,fromStatus,toStatus,note){
+  _logs.push({
+    id:'lg_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    time:new Date().toLocaleString('zh-CN'),
+    pointId:pointId,pointName:pointName,
+    fromStatus:fromStatus,toStatus:toStatus,note:note||''
+  });
+}
+
+let pts=[],map,mL,ei=null,di=null;
+let sP='我',sB='美团',sS='正常';
+let aP=new Set(['我','你','他']),aB=new Set(['美团','怪兽']),aS=new Set(['正常','满仓','离线','空仓']);
+let pLa=null,pLn=null;
+let srchMode='poi',poiTimer=null;
+let _searchForForm=false;
+
+// ===== 日期筛选状态 =====
+let dateRange={mode:'all',start:null,end:null};
+
+// ===== 批量选择 =====
+let batchMode=false,selectedIds=new Set();
+
+// ===== 路线点 =====
+let routeIds=[];let routeLine=null;
+
+// ===== 自动保存 Flash —— 右上角绿点脉冲 =====
+function sfDot(){
+  const d=document.getElementById('save-dot');
+  d.classList.remove('pulse');
+   void d.offsetWidth;
+  d.classList.add('pulse');
+}
+
+// ===== 核心：保存数据到 localStorage + 文件 =====
+function sv(){
+  const pkg={
+    v:1,
+    pts:pts,
+    aP:[...aP],
+    aB:[...aB],
+    aS:[...aS],
+    logs:_logs
+  };
+  try{
+    localStorage.setItem(LK,JSON.stringify(pkg));
+    sfDot();
+  }catch(e){
+    st('存储空间不足，请导出备份','w');
+  }
+  _writeFile();
+  ap();
+}
+
+// ===== 加载数据：固定Key + 自动迁移旧版本数据 =====
+function mg(){
+  try{
+    const raw=localStorage.getItem(LK);
+    if(raw){
+      const pkg=JSON.parse(raw);
+      if(pkg.pts&&Array.isArray(pkg.pts)){
+        pts=pkg.pts.map(p=>ensureFields(p));
+        if(pkg.aP) aP=new Set(pkg.aP);
+        if(pkg.aB) aB=new Set(pkg.aB);
+        if(pkg.aS) aS=new Set(pkg.aS);
+        if(pkg.logs) _logs=pkg.logs;
+        sf();ap();
+        return;
+      }
+    }
+  }catch(e){}
+
+  const oldKeys=[
+    'ditui_yunwei_v14','ditui_yunwei_v13','ditui_yunwei_v12',
+    'ditui_yunwei_v11','ditui_yunwei_v10','ditui_yunwei_v9',
+    'ditui_yunwei_v8','ditui_yunwei_v7','ditui_yunwei_v6',
+    'ditui_yunwei_v5','ditui_yunwei_v4'
+  ];
+  for(const k of oldKeys){
+    try{
+      const r=localStorage.getItem(k);
+      if(r){
+        const a=JSON.parse(r);
+        if(a&&Array.isArray(a)&&a.length){
+          pts=a.map(p=>ensureFields({...p,brand:p.brand||'美团',status:p.status||'正常',person:p.person||'我',records:p.records||[]}));
+          sv();
+          return;
+        }
+      }
+    }catch(e){}
+  }
+  pts=[];ap();
+}
+
+function ensureFields(p){
+  if(p.todo===undefined) p.todo=false;
+  if(p.priority===undefined) p.priority=2;
+  if(!p.photos) p.photos=[];
+  if(!p.time) p.time=new Date().toLocaleString('zh-CN');
+  if(!p.records) p.records=[];
+  return p;
+}
+
+// ===== 日期筛选 =====
+function isInDateRange(p){
+  if(dateRange.mode==='all') return true;
+  if(!p.time) return true;
+  const d=new Date(p.time.replace(/\//g,'-'));
+  if(isNaN(d)) return true;
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(dateRange.mode==='today'){
+    return d>=today && d<new Date(today.getTime()+86400000);
+  }
+  if(dateRange.mode==='week'){
+    const wkStart=new Date(today);
+    wkStart.setDate(today.getDate()-today.getDay());
+    const wkEnd=new Date(wkStart.getTime()+7*86400000);
+    return d>=wkStart && d<wkEnd;
+  }
+  if(dateRange.mode==='month'){
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  }
+  if(dateRange.mode==='custom'){
+    if(!dateRange.start) return true;
+    const s=new Date(dateRange.start+'T00:00:00');
+    const e=dateRange.end?new Date(dateRange.end+'T23:59:59'):new Date('2099-12-31');
+    return d>=s && d<=e;
+  }
+  return true;
+}
+
+function gf(){
+  return pts.filter(p=>aP.has(p.person||'我')&&aB.has(p.brand||'美团')&&aS.has(p.status||'正常')&&isInDateRange(p));
+}
+
+function uc(){
+  const f=gf(),t=pts.length;
+  document.getElementById('cnt').innerHTML=f.length===t?`共 <b>${t}</b> 个`:`显示 <b>${f.length}</b> / ${t}`;
+}
+
+function ap(){rm();uc()}
+
+function rm(d){
+  if(!mL) return;
+  mL.clearLayers();
+  (d||gf()).forEach(p=>{
+    const bc=BR[p.brand]||BR['美团'],sc=ST[p.status]||ST['正常'],pc=PR[p.person]||PR['我'],sm=SS[p.status]||'●';
+    const isTodo=p.todo?'border:2.5px solid var(--st-o)':'border:2.5px solid '+sc;
+    const todoBadge=p.todo?'<div class="todo-badge"></div>':'';
+    const ic=L.divIcon({html:`<div style="position:relative;width:26px;height:26px;border-radius:50%;background:${bc};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px ${bc}44,0 0 0 2px ${pc};${isTodo};font-size:12px;color:#fff;font-weight:700;line-height:1">${sm}</div>${todoBadge}`,iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-26],className:selectedIds.has(p.id)?'marker-selected':''});
+    const m=L.marker([p.lat,p.lng],{icon:ic}).addTo(mL);
+    const todoStr=p.todo?'☑ 待办 ':'';
+    const priStr=p.priority?'优先级:'+PRI_LABEL[p.priority]:'';
+    const nmEsc=esc(p.name),adEsc=esc(p.addr||'--');
+    m.bindPopup(`<b>${nmEsc}</b><br><small style="color:${pc}">${esc(p.person||'我')}</small> · <small style="color:${bc}">${esc(p.brand||'美团')}</small> · <small style="color:${sc}">${esc(p.status||'正常')}</small><br>${todoStr}${priStr}<br>${adEsc}<br><small>记录 ${(p.records||[]).length} 条 照片 ${(p.photos||[]).length} 张</small><br><a href="#" onclick="event.preventDefault();sd('${p.id}')" style="color:#00c2ff;font-weight:600">详情</a> <a href="#" onclick="event.preventDefault();onv(${p.lat},${p.lng},${JSON.stringify(p.name||'')})" style="color:#1dd176;font-weight:600">导航</a>`);
+    // 批量模式点选
+    if(batchMode){
+      m.on('click',function(e){e.originalEvent&&e.originalEvent.stopPropagation&&e.originalEvent.stopPropagation();toggleSelect(p.id);});
+    }
+  });
+}
+
+// ===== 日期筛选 UI =====
+document.querySelectorAll('#tb .dtag').forEach(e=>e.onclick=function(){
+  document.querySelectorAll('#tb .dtag').forEach(x=>x.classList.remove('on'));
+  this.classList.add('on');
+  const m=this.dataset.drange;
+  if(m==='custom') return;
+  dateRange.mode=m;dateRange.start=null;dateRange.end=null;
+  document.getElementById('dr-start').value='';document.getElementById('dr-end').value='';
+  ap();
+});
+document.getElementById('dr-start').addEventListener('change',function(){
+  dateRange.mode='custom';dateRange.start=this.value;
+  document.querySelectorAll('#tb .dtag').forEach(x=>x.classList.remove('on'));
+  if(dateRange.start&&dateRange.end) ap();
+});
+document.getElementById('dr-end').addEventListener('change',function(){
+  dateRange.mode='custom';dateRange.end=this.value;
+  document.querySelectorAll('#tb .dtag').forEach(x=>x.classList.remove('on'));
+  if(dateRange.start&&dateRange.end) ap();
+});
+
+function sf(){
+  document.querySelectorAll('#tb .tag[data-person]').forEach(e=>e.classList.toggle('on',aP.has(e.dataset.person)));
+  document.querySelectorAll('#tb .tag[data-brand]').forEach(e=>e.classList.toggle('on',aB.has(e.dataset.brand)));
+  document.querySelectorAll('#tb .tag[data-status]').forEach(e=>e.classList.toggle('on',aS.has(e.dataset.status)));
+}
+
+document.querySelectorAll('#tb .tag[data-person]').forEach(e=>e.onclick=function(){
+  const p=this.dataset.person;if(aP.has(p)&&aP.size===1){st('至少选一个归属','w');return}
+  aP.has(p)?aP.delete(p):aP.add(p);sf();sv();
+});
+document.querySelectorAll('#tb .tag[data-brand]').forEach(e=>e.onclick=function(){
+  const b=this.dataset.brand;if(aB.has(b)&&aB.size===1){st('至少选一个品牌','w');return}
+  aB.has(b)?aB.delete(b):aB.add(b);sf();sv();
+});
+document.querySelectorAll('#tb .tag[data-status]').forEach(e=>e.onclick=function(){
+  const s=this.dataset.status;if(aS.has(s)&&aS.size===1){st('至少选一个状态','w');return}
+  aS.has(s)?aS.delete(s):aS.add(s);sf();sv();
+});
+
+/* ── 地图 ── */
+function im(){
+  if(!window.L){st('地图组件加载失败，请检查网络后刷新','w');return}
+  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([39.9042,116.4074],12);
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{subdomains:'1234',maxZoom:18}).addTo(map);
+  mL=L.layerGroup().addTo(map);
+  rm();
+  map.on('click',function(e){
+    if(batchMode) return;
+    if(document.getElementById('fov').classList.contains('open')){sC(e.latlng.lat,e.latlng.lng)}
+    else{of(e.latlng.lat,e.latlng.lng)}
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function sC(lat,lng){map.setView([lat,lng],Math.max(map.getZoom(),15))}
+
+/* ── 表单 ── */
+document.querySelectorAll('#ps .tgr').forEach(e=>e.onclick=function(){
+  document.querySelectorAll('#ps .tgr').forEach(x=>x.classList.remove('sel'));
+  this.classList.add('sel');sP=this.dataset.person;
+});
+document.querySelectorAll('#bs .tgr').forEach(e=>e.onclick=function(){
+  document.querySelectorAll('#bs .tgr').forEach(x=>x.classList.remove('sel'));
+  this.classList.add('sel');sB=this.dataset.brand;
+});
+document.querySelectorAll('#ss .tgr').forEach(e=>e.onclick=function(){
+  document.querySelectorAll('#ss .tgr').forEach(x=>x.classList.remove('sel'));
+  this.classList.add('sel');sS=this.dataset.status;
+});
+
+// 优先级选择（表单）
+document.querySelectorAll('#fpri .pri-btn').forEach(e=>e.onclick=function(){
+  document.querySelectorAll('#fpri .pri-btn').forEach(x=>x.classList.remove('sel'));
+  this.classList.add('sel');
+});
+
+function of(lat,lng,ep){
+  ei=ep?ep.id:null;
+  document.getElementById('fov').classList.add('open');
+  document.getElementById('ft').textContent=ep?'编辑':'添加';
+  if(ep){
+    sP=ep.person||'我';sB=ep.brand||'美团';sS=ep.status||'正常';
+    document.getElementById('fn').value=ep.name;
+    document.getElementById('fa').value=ep.addr||'';
+    document.getElementById('fnote').value='';
+    pLa=ep.lat;pLn=ep.lng;
+    map.setView([ep.lat,ep.lng],Math.max(map.getZoom(),15));
+    document.getElementById('ftodo').checked=!!ep.todo;
+    const pri=ep.priority||2;
+    document.querySelectorAll('#fpri .pri-btn').forEach(x=>x.classList.toggle('sel',parseInt(x.dataset.pri)===pri));
+  }else{
+    sP='我';sB='美团';sS='正常';
+    document.getElementById('fn').value='';
+    document.getElementById('fa').value='';
+    document.getElementById('fnote').value='';
+    document.getElementById('ftodo').checked=false;
+    document.querySelectorAll('#fpri .pri-btn').forEach(x=>x.classList.toggle('sel',x.dataset.pri==='2'));
+    if(lat!=null&&lng!=null){pLa=lat;pLn=lng;map.setView([lat,lng],Math.max(map.getZoom(),15))}
+    else{const c=map.getCenter();pLa=c.lat;pLn=c.lng}
+  }
+  document.querySelectorAll('#ps .tgr').forEach(e=>e.classList.toggle('sel',e.dataset.person===sP));
+  document.querySelectorAll('#bs .tgr').forEach(e=>e.classList.toggle('sel',e.dataset.brand===sB));
+  document.querySelectorAll('#ss .tgr').forEach(e=>e.classList.toggle('sel',e.dataset.status===sS));
+}
+
+function cf(){document.getElementById('fov').classList.remove('open');ei=null}
+
+function sP2(){
+  const n=document.getElementById('fn').value.trim(),a=document.getElementById('fa').value.trim(),la=pLa,ln=pLn;
+  if(!n){st('请输入名称','w');return}
+  if(la==null||ln==null||isNaN(la)||isNaN(ln)){st('请在地图上选点','w');return}
+  const todo=document.getElementById('ftodo').checked;
+  const pri=parseInt(document.querySelector('#fpri .pri-btn.sel')?.dataset.pri||'2');
+  const note=document.getElementById('fnote').value.trim();
+  if(ei){
+    const i=pts.findIndex(p=>p.id===ei);
+    if(i!==-1){
+      const oldP=pts[i];
+      // 状态变更检测
+      if(oldP.status!==sS){
+        _addLog(ei,n,oldP.status,sS,note||a||'');
+      }
+      pts[i]={...pts[i],person:sP,brand:sB,status:sS,name:n,addr:a,lat:la,lng:ln,todo,priority:pri}
+    }
+  }else{
+    pts.push({id:'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),person:sP,brand:sB,status:sS,name:n,addr:a,lat:la,lng:ln,time:new Date().toLocaleString('zh-CN'),records:[],photos:[],todo,priority:pri})
+  }
+  sv();cf();
+  st(ei?'已更新':'已添加');
+}
+
+/* ── 详情 ── */
+function sd(id){
+  const p=pts.find(x=>x.id===id);if(!p)return;di=id;
+  const bc=BR[p.brand]||BR['美团'],sc=ST[p.status]||ST['正常'],pc=PR[p.person]||PR['我'];
+  document.getElementById('dp').textContent=p.person||'我';
+  document.getElementById('dp').style.background=pc+'22';
+  document.getElementById('dp').style.color=pc;
+  document.getElementById('db').textContent=p.brand||'美团';
+  document.getElementById('db').style.background=bc+'22';
+  document.getElementById('db').style.color=bc;
+  document.getElementById('ds').textContent=p.status||'正常';
+  document.getElementById('ds').style.background=sc+'22';
+  document.getElementById('ds').style.color=sc;
+  document.getElementById('dn').textContent=p.name;
+  document.getElementById('da').textContent=p.addr||'--';
+  document.getElementById('dt').textContent=p.time||'--';
+  // 待办
+  document.getElementById('dtodo').checked=!!p.todo;
+  document.getElementById('dtodo').onchange=function(){p.todo=this.checked;sv();rm();};
+  // 优先级
+  const pri=p.priority||2;
+  document.querySelectorAll('#dpri .pri-btn').forEach(x=>{
+    x.classList.toggle('sel',parseInt(x.dataset.pri)===pri);
+    x.onclick=function(){
+      document.querySelectorAll('#dpri .pri-btn').forEach(y=>y.classList.remove('sel'));
+      this.classList.add('sel');
+      p.priority=parseInt(this.dataset.pri);
+      sv();rm();
+    };
+  });
+  rr();renderPhotos(p);
+  document.getElementById('dov').classList.add('open');
+  map.setView([p.lat,p.lng],Math.max(map.getZoom(),16));
+}
+
+function renderPhotos(p){
+  const el=document.getElementById('photo-thumbs');
+  el.innerHTML='';
+  if(!p.photos||!p.photos.length){el.innerHTML='<div style="font-size:11px;color:var(--text2)">暂无照片</div>';return}
+  p.photos.forEach((ph,i)=>{
+    const d=document.createElement('div');
+    d.className='photo-thumb';
+    d.innerHTML=`<img src="${ph}" alt="照片${i+1}"><div class="photo-del" data-idx="${i}">✕</div>`;
+    d.querySelector('img').onclick=function(){openLightbox(ph)};
+    d.querySelector('.photo-del').onclick=function(e){e.stopPropagation();p.photos.splice(i,1);sv();renderPhotos(p);rm();};
+    el.appendChild(d);
+  });
+}
+
+function openLightbox(src){
+  document.getElementById('photo-lb-img').src=src;
+  document.getElementById('photo-lb').classList.add('open');
+}
+function clb(){document.getElementById('photo-lb').classList.remove('open')}
+
+function uploadPhotos(event){
+  const p=pts.find(x=>x.id===di);if(!p)return;
+  if(!p.photos) p.photos=[];
+  const files=event.target.files;
+  if(!files||!files.length) return;
+  let loaded=0;
+  Array.from(files).forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=function(e){
+      let dataUrl=e.target.result;
+      // 压缩：缩小尺寸
+      const img=new Image();
+      img.onload=function(){
+        const canvas=document.createElement('canvas');
+        let w=img.width,h=img.height;
+        const MAX=800;
+        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r)}
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const compressed=canvas.toDataURL('image/jpeg',0.6);
+        p.photos.push(compressed);
+        loaded++;
+        if(loaded===files.length){sv();renderPhotos(p);rm();st('照片已保存')}
+      };
+      img.src=dataUrl;
+    };
+    reader.readAsDataURL(f);
+  });
+  event.target.value='';
+}
+
+function rr(){
+  const p=pts.find(x=>x.id===di);if(!p)return;
+  const el=document.getElementById('rl');
+  el.innerHTML=(p.records||[]).map((r,i)=>`<div class="ri"><span class="rit">${esc(r.time)}</span><span class="rix">${esc(r.text)}</span><span class="rid" onclick="dr(${i})">✕</span></div>`).join('')||'<div style="font-size:11px;color:var(--text2);text-align:center;padding:8px">暂无处理记录</div>';
+}
+
+function ar(){
+  const t=document.getElementById('rdi').value.trim();if(!t)return;
+  const p=pts.find(x=>x.id===di);if(!p)return;
+  if(!p.records)p.records=[];
+  p.records.push({time:new Date().toLocaleString('zh-CN'),text:t});
+  document.getElementById('rdi').value='';
+  sv();rr();
+  st('记录已添加');
+}
+
+function dr(i){
+  const p=pts.find(x=>x.id===di);if(!p)return;
+  p.records.splice(i,1);sv();rr();
+}
+
+function cd(){document.getElementById('dov').classList.remove('open');di=null}
+
+function dl(){
+  if(!di)return;
+  if(!confirm('确定删除此运维点？'))return;
+  pts=pts.filter(p=>p.id!==di);
+  sv();cd();
+  st('已删除');
+}
+
+function ed(){
+  if(!di)return;
+  const p=pts.find(x=>x.id===di);if(!p)return;
+  cd();of(null,null,p);
+}
+
+/* ── 今日待办面板 ── */
+function otp(){
+  document.getElementById('todo-panel').classList.add('open');
+  renderTodoList();
+  renderLogList();
+}
+function ctp(){document.getElementById('todo-panel').classList.remove('open')}
+
+function getTodoList(){
+  return pts.filter(p=>p.todo).sort((a,b)=>(a.priority||2)-(b.priority||2));
+}
+
+function renderTodoList(){
+  const el=document.getElementById('tp-list');
+  const list=getTodoList();
+  if(!list.length){el.innerHTML='<div class="tp-empty">暂无待办事项 🎉</div>';return}
+  el.innerHTML=list.map(p=>{
+    const bc=BR[p.brand]||BR['美团'],pc=PR[p.person]||PR['我'];
+    const pri=p.priority||2;
+    return`<div class="tp-item" data-id="${p.id}" onclick="tpItemClick('${p.id}')">
+      <div class="tp-pri" style="background:${PRI_COLOR[pri]}"></div>
+      <input type="checkbox" class="tp-cb" data-id="${p.id}" onchange="tpToggle('${p.id}',this.checked)" onclick="event.stopPropagation()">
+      <div class="tp-info">
+        <div class="tp-name" style="color:${pc}">${esc(p.name)}</div>
+        <div class="tp-meta">${esc(p.person||'我')} · ${esc(p.brand||'美团')} · 优先级:${PRI_LABEL[pri]}</div>
+      </div>
+      <div class="tp-actions">
+        <button class="tp-act-btn tp-nav" onclick="event.stopPropagation();tpNav('${p.id}')">🧭</button>
+        <button class="tp-act-btn tp-route" onclick="event.stopPropagation();tpAddRoute('${p.id}')">+路线</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLogList(){
+  const hd=document.getElementById('tp-log-hd'),el=document.getElementById('tp-log');
+  const todayKey=_dayKey(new Date());
+  const todayLogs=_logs.filter(l=>_timeDayKey(l.time)===todayKey);
+  if(!todayLogs.length){hd.style.display='none';el.innerHTML='';return}
+  hd.style.display='block';
+  el.innerHTML=todayLogs.slice().reverse().map(l=>`<div class="tp-log-item">
+    <div class="lg-time">${esc(l.time)}</div>
+    <span class="lg-name">${esc(l.pointName)}</span> →
+    <span class="lg-status" style="color:${ST[l.fromStatus]||'#888'}">${esc(l.fromStatus)}</span> → <span class="lg-status" style="color:${ST[l.toStatus]||'#888'}">${esc(l.toStatus)}</span>
+    ${l.note?`<div class="lg-note">${esc(l.note)}</div>`:''}
+  </div>`).join('');
+}
+
+function tpItemClick(id){
+  ctp();
+  const p=pts.find(x=>x.id===id);
+  if(p) {sd(id);map.setView([p.lat,p.lng],17);}
+}
+
+function tpToggle(id,checked){
+  const p=pts.find(x=>x.id===id);
+  if(!p) return;
+  if(checked){
+    p.todo=false;st('已完成: '+p.name);
+  }
+  sv();rm();renderTodoList();
+}
+
+function tpNav(id){
+  const p=pts.find(x=>x.id===id);
+  if(p){ctp();onv(p.lat,p.lng,p.name)}
+}
+
+function tpAddRoute(id){
+  if(!routeIds.includes(id)){
+    routeIds.push(id);
+    st('已加入路线');
+    renderRoutePanel();
+  }
+}
+
+/* ── 路线规划 ── */
+function orp(){
+  document.getElementById('route-panel').classList.add('open');
+  renderRoutePanel();
+}
+function crp(){
+  document.getElementById('route-panel').classList.remove('open');
+}
+
+function renderRoutePanel(){
+  const el=document.getElementById('rp-list');
+  if(!routeIds.length){el.innerHTML='<div class="rp-empty">点击待办中 "+路线" 或详情中 "+路线" 添加</div>';return}
+  el.innerHTML=routeIds.map((id,i)=>{
+    const p=pts.find(x=>x.id===id);
+    if(!p) return '';
+    return`<div class="rp-item" draggable="true" data-idx="${i}" ondragstart="rpDragStart(event,${i})" ondragover="rpDragOver(event)" ondrop="rpDrop(event,${i})">
+      <div class="rp-idx">${i+1}</div>
+      <div class="rp-drag">⠿</div>
+      <div class="rp-name">${esc(p.name)}</div>
+      <button class="rp-remove" onclick="rpRemove('${id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+let rpDragIdx=null;
+function rpDragStart(e,idx){rpDragIdx=idx;e.dataTransfer.effectAllowed='move';}
+function rpDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function rpDrop(e,idx){
+  e.preventDefault();
+  if(rpDragIdx===null||rpDragIdx===idx) return;
+  const item=routeIds.splice(rpDragIdx,1)[0];
+  routeIds.splice(idx,0,item);
+  rpDragIdx=null;
+  renderRoutePanel();
+  drawRouteLine();
+}
+
+function rpRemove(id){
+  routeIds=routeIds.filter(x=>x!==id);
+  renderRoutePanel();
+  if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+  st('已从路线移除');
+}
+
+function drawRouteLine(){
+  if(routeLine) map.removeLayer(routeLine);
+  const coords=routeIds.map(id=>{const p=pts.find(x=>x.id===id);return p?[p.lat,p.lng]:null}).filter(Boolean);
+  if(coords.length<2) return;
+  routeLine=L.polyline(coords,{color:'#00c2ff',weight:3,dashArray:'8,8',opacity:0.8}).addTo(map);
+  map.fitBounds(L.latLngBounds(coords),{padding:[40,40]});
+}
+
+async function planRoute(){
+  if(routeIds.length<2){st('至少添加2个点','w');return}
+  const coords=routeIds.map(id=>{const p=pts.find(x=>x.id===id);return p?{lng:p.lng,lat:p.lat}:null}).filter(Boolean);
+  const origin=coords[0],dest=coords[coords.length-1];
+  const wp=coords.slice(1,-1).map(c=>c.lng+','+c.lat).join(';');
+  // 尝试高德驾车路径规划 API
+  try{
+    const url=`https://restapi.amap.com/v3/direction/driving?key=${AK}&origin=${origin.lng},${origin.lat}&destination=${dest.lng},${dest.lat}${wp?'&waypoints='+wp:''}&strategy=2&extensions=all`;
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.status==='1'&&data.route&&data.route.paths){
+      const path=data.route.paths[0];
+      const polyline=path.steps.flatMap(s=>s.polyline.split(';').map(c=>{const [lng,lat]=c.split(',');return [parseFloat(lat),parseFloat(lng)]}));
+      if(routeLine) map.removeLayer(routeLine);
+      routeLine=L.polyline(polyline,{color:'#7b5cff',weight:4,opacity:0.85}).addTo(map);
+      map.fitBounds(L.latLngBounds(polyline),{padding:[40,40]});
+      st('路线规划完成');
+      return;
+    }
+  }catch(e){}
+  // 降级：直接连线
+  drawRouteLine();
+  st('已用直线连接路线点');
+}
+
+// 详情中 "+路线" 按钮
+document.getElementById('brt').onclick=function(){
+  if(!di) return;
+  if(!routeIds.includes(di)) routeIds.push(di);
+  orp();
+  st('已加入路线');
+};
+
+/* ── 批量操作 ── */
+function tbatch(){
+  batchMode=!batchMode;
+  const bar=document.getElementById('batch-bar');
+  if(batchMode){
+    bar.classList.add('show');
+    st('批量模式：点击标记选择');
+  }else{
+    bar.classList.remove('show');
+    selectedIds.clear();
+  }
+  rm();
+}
+
+function toggleSelect(id){
+  if(!batchMode) return;
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  document.getElementById('bb-cnt').textContent=selectedIds.size;
+  rm();
+}
+
+function bclear(){
+  selectedIds.clear();
+  document.getElementById('bb-cnt').textContent=0;
+  rm();
+}
+
+async function bbatch(action){
+  if(!selectedIds.size){st('请先选择运维点','w');return}
+  if(action==='del'){
+    if(!confirm(`确定删除选中的 ${selectedIds.size} 个运维点？`)) return;
+    pts=pts.filter(p=>!selectedIds.has(p.id));
+    sv();selectedIds.clear();tbatch();
+    st('已删除');
+    return;
+  }
+  if(action==='status'){
+    const ns=await askChoice('批量修改状态',['正常','满仓','离线','空仓'].map(s=>({label:s,value:s,color:ST[s]})));
+    if(!ns)return;
+    pts.forEach(p=>{if(selectedIds.has(p.id)){if(p.status!==ns)_addLog(p.id,p.name,p.status,ns,'批量修改');p.status=ns;}});
+    sv();selectedIds.clear();tbatch();
+    st('状态已更新');
+    return;
+  }
+  if(action==='person'){
+    const np=await askChoice('批量修改归属',['我','你','他'].map(v=>({label:v,value:v,color:PR[v]})));
+    if(!np)return;
+    pts.forEach(p=>{if(selectedIds.has(p.id)) p.person=np;});
+    sv();selectedIds.clear();tbatch();
+    st('归属已更新');
+  }
+}
+
+// 批量操作：通用选择面板
+let _chSel=null,_chResolve=null;
+function askChoice(title,opts){
+  return new Promise(res=>{
+    _chSel=null;_chResolve=res;
+    document.getElementById('ch-title').textContent=title;
+    const list=document.getElementById('ch-list');
+    list.innerHTML='';
+    opts.forEach(o=>{
+      const d=document.createElement('div');
+      d.className='ch-item';d.textContent=o.label;d.dataset.v=o.value;
+      if(o.color){d.style.borderColor=o.color+'66';d.style.color=o.color}
+      d.onclick=function(){
+        list.querySelectorAll('.ch-item').forEach(x=>{x.classList.remove('sel');x.style.background=''});
+        d.classList.add('sel');
+        if(o.color)d.style.background=o.color+'22';
+        _chSel=o.value;
+        setTimeout(finishChoice,140);
+      };
+      list.appendChild(d);
+    });
+    document.getElementById('chov').classList.add('open');
+  });
+}
+function finishChoice(){
+  document.getElementById('chov').classList.remove('open');
+  if(_chResolve){const r=_chResolve;_chResolve=null;r(_chSel);}
+}
+function cancelChoice(){
+  document.getElementById('chov').classList.remove('open');
+  if(_chResolve){const r=_chResolve;_chResolve=null;r(null);}
+}
+
+// 长按标记进入批量模式
+let longPressTimer=null;
+document.addEventListener('touchstart',function(e){
+  if(!batchMode && e.target.closest('.leaflet-marker-icon')){
+    longPressTimer=setTimeout(()=>{tbatch();st('批量模式已开启')},600);
+  }
+},{passive:true});
+document.addEventListener('touchend',()=>clearTimeout(longPressTimer));
+document.addEventListener('touchmove',()=>clearTimeout(longPressTimer));
+
+// 地图上也增加选择按钮
+const batchBtn=document.createElement('button');
+batchBtn.className='rbtn';
+batchBtn.id='batchbtn';
+batchBtn.innerHTML='☐';
+batchBtn.style.top='208px';
+batchBtn.style.fontSize='15px';
+batchBtn.onclick=tbatch;
+document.body.appendChild(batchBtn);
+
+/* ── 导航 ── */
+const UA=navigator.userAgent,IS=/iPhone|iPad|iPod/.test(UA),AN=/Android/.test(UA),WX=/MicroMessenger/i.test(UA);
+
+function onv(lat,lng,name){
+  const c=document.getElementById('no');let h='';
+  const b=(ic,lb,tg,url,ap)=>{
+    const on=ap?`ta('${url.replace(/'/g,"\\'")}')`:`window.open('${url}','_blank')`;
+    return`<div class="no" onclick="${on}"><span class="ni">${ic}</span><span class="nb">${lb}</span>${tg?`<span class="nt">${tg}</span>`:''}</div>`;
+  };
+  if(IS){
+    if(!WX){h+=b('🚗','高德驾车','App',`iosamap://path?sourceApplication=APP&lat=${lat}&lon=${lng}&name=${encodeURIComponent(name)}`,true);h+=b('🚲','高德骑行','App',`iosamap://path?sourceApplication=APP&dlat=${lat}&dlon=${lng}&dname=${encodeURIComponent(name)}&dev=0&t=3`,true);h+=b('📍','百度地图','App',`baidumap://map/marker?location=${lat},${lng}&title=${encodeURIComponent(name)}&src=APP`,true)}
+    h+=b('🍎','Apple 地图','系统',`https://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(name)}`,false);
+    h+=b('🚲','骑行导航','网页',`https://uri.amap.com/navigation?to=${lng},${lat},${encodeURIComponent(name)}&mode=bicycle`,false);
+    h+=b('🗺️','高德地图','网页',`https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(name)}`,false);
+  }else if(AN){
+    if(!WX){h+=b('🚗','高德驾车','唤起',`intent://navi?sourceApplication=APP&lat=${lat}&lon=${lng}&dev=0&style=2#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${encodeURIComponent('https://uri.amap.com/marker?position='+lng+','+lat+'&name='+encodeURIComponent(name))};end`,true);h+=b('🚲','高德骑行','唤起',`intent://navi?sourceApplication=APP&lat=${lat}&lon=${lng}&dev=0&style=3#Intent;scheme=androidamap;package=com.autonavi.minimap;S.browser_fallback_url=${encodeURIComponent('https://uri.amap.com/navigation?to='+lng+','+lat+'&name='+encodeURIComponent(name)+'&mode=bicycle')};end`,true);h+=b('📍','百度地图','唤起',`intent://map/marker?location=${lat},${lng}&title=${encodeURIComponent(name)}&src=APP#Intent;scheme=baidumap;package=com.baidu.BaiduMap;S.browser_fallback_url=${encodeURIComponent('https://api.map.baidu.com/marker?location='+lat+','+lng+'&title='+encodeURIComponent(name)+'&output=html')};end`,true)}
+    h+=b('🗺️','高德地图','网页',`https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(name)}`,false);
+    h+=b('🚲','骑行导航','网页',`https://uri.amap.com/navigation?to=${lng},${lat},${encodeURIComponent(name)}&mode=bicycle`,false);
+    h+=b('🌐','Google','网页',`https://www.google.com/maps?q=${lat},${lng}`,false);
+  }else{
+    h+=b('🗺️','高德地图','',`https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(name)}`,false);
+    h+=b('🚲','骑行导航','',`https://uri.amap.com/navigation?to=${lng},${lat},${encodeURIComponent(name)}&mode=bicycle`,false);
+    h+=b('📍','百度地图','',`https://api.map.baidu.com/marker?location=${lat},${lng}&title=${encodeURIComponent(name)}&output=html`,false);
+  }
+  h+=`<div class="no" onclick="cc(${lat},${lng})"><span class="ni">📋</span><span class="nb">复制坐标</span><span class="nt">${lat.toFixed(6)},${lng.toFixed(6)}</span></div>`;
+  c.innerHTML=h;document.getElementById('nsheet').classList.add('open');
+}
+
+function ta(url){
+  const s=Date.now();window.location.href=url;
+  setTimeout(()=>{if(Date.now()-s<2800)return;st('未检测到App','w')},2500);
+}
+
+function cc(lat,lng){
+  const t=`${lat},${lng}`;
+  navigator.clipboard?navigator.clipboard.writeText(t).then(()=>st('已复制')):st(t);
+}
+
+/* ── GPS 定位 ── */
+
+function _showMyLoc(lat,lng,label,zoom){
+  if(!map) return;
+  map.setView([lat,lng],zoom);
+  L.circleMarker([lat,lng],{radius:7,color:'#00c2ff',fillColor:'#00c2ff',fillOpacity:.3,weight:2.5}).addTo(map).bindPopup(label).openPopup();
+  document.getElementById('lbtn').style.opacity='1';
+}
+
+function lm(){
+  const btn=document.getElementById('lbtn');
+  btn.style.opacity='.4';st('定位中...');
+  let done=false;
+  const ok=(lat,lng,label,zoom,msg)=>{ if(done)return; done=true; _showMyLoc(lat,lng,label,zoom); if(msg)st(msg); };
+  const fail=()=>{ if(done)return; done=true; _ipLocate(); };
+  // 非 HTTPS（file:// 或 http://）时手机浏览器会禁用精确GPS，直接走网络定位，避免白等
+  const canGps=window.isSecureContext&&location.protocol!=='file:'&&navigator.geolocation;
+  if(canGps){
+    try{
+      navigator.geolocation.getCurrentPosition(p=>{
+        const[ln,l]=wgs84ToGcj02(p.coords.longitude,p.coords.latitude);
+        ok(l,ln,'📍 我的位置',17,'已定位');
+      },fail,{enableHighAccuracy:true,timeout:8000,maximumAge:30000});
+      // 安全网：个别 WebView 既不成功也不回调错误，强制走网络定位
+      setTimeout(fail,9000);
+    }catch(e){ fail(); }
+  }else{
+    fail();
+  }
+}
+
+// 网络定位兜底：高德 IP（JSONP）→ 通用 IP（fetch），均为城市级
+let _ipCbId=0;
+function _ipLocate(){
+  st('正在网络定位...',null,true);
+  _amapIp().then(ok=>ok?true:_foreignIp()).then(ok=>{
+    if(!ok) _locateFail('网络异常，请检查网络后重试');
+  }).catch(()=>_locateFail('网络异常，请检查网络后重试'));
+}
+function _locateFail(msg){
+  document.getElementById('lbtn').style.opacity='1';
+  st('定位失败：'+msg,'w');
+}
+function _amapIp(){
+  return new Promise(resolve=>{
+    const cb='_ipCb'+(_ipCbId++);
+    const s=document.createElement('script');
+    let done=false,timer=null;
+    const cleanup=()=>{ try{delete window[cb]}catch(e){} try{s.remove()}catch(e){} };
+    const settle=v=>{ if(done)return; done=true; if(timer)clearTimeout(timer); cleanup(); resolve(v); };
+    timer=setTimeout(()=>settle(false),4000);
+    window[cb]=function(data){
+      if(data&&data.status==='1'&&data.rectangle){
+        const v=data.rectangle.split(/[;,]/).map(Number);
+        if(v.length>=4&&v.every(n=>!isNaN(n))){
+          _showMyLoc((v[1]+v[3])/2,(v[0]+v[2])/2,'📍 大致位置（IP定位）',13);
+          st('已用网络IP定位（城市级，精度有限）');
+          settle(true);
+          return;
+        }
+      }
+      settle(false);
+    };
+    s.src=`https://restapi.amap.com/v3/ip?key=${AK}&callback=${cb}`;
+    s.onerror=()=>settle(false);
+    document.head.appendChild(s);
+  });
+}
+function _foreignIp(){
+  return new Promise(resolve=>{
+    if(typeof fetch!=='function'){resolve(false);return}
+    let ctrl=null,t=null;
+    try{ ctrl=new AbortController(); t=setTimeout(()=>ctrl.abort(),5000); }catch(e){}
+    fetch('https://ipwho.is/', ctrl?{signal:ctrl.signal}:{}).then(r=>r.json()).then(d=>{
+      if(t)clearTimeout(t);
+      if(d&&typeof d.latitude==='number'&&typeof d.longitude==='number'){
+        const[ln,l]=wgs84ToGcj02(d.longitude,d.latitude);
+        _showMyLoc(l,ln,'📍 大致位置（网络定位）',13);
+        st('已用网络定位（城市级，精度有限）');
+        resolve(true);
+      }else resolve(false);
+    }).catch(()=>{ if(t)clearTimeout(t); resolve(false); });
+  });
+}
+
+/* ── 每日活动聚合 ── */
+const _WD=['日','一','二','三','四','五','六'];
+function _buildDaily(days){
+  const bucket={};
+  const g=k=>(bucket[k]||(bucket[k]={added:[],recs:[],sts:[]}));
+  pts.forEach(p=>{const k=_timeDayKey(p.time);if(k)g(k).added.push(p.name||'未命名')});
+  pts.forEach(p=>(p.records||[]).forEach(r=>{const k=_timeDayKey(r.time);if(k)g(k).recs.push({n:p.name||'未命名',t:r.text||''})}));
+  _logs.forEach(l=>{const k=_timeDayKey(l.time);if(k)g(k).sts.push({n:l.pointName||'',f:l.fromStatus||'',t:l.toStatus||'',note:l.note||''})});
+  const now=new Date(),arr=[];
+  for(let i=days-1;i>=0;i--){
+    const d=new Date(now);d.setDate(now.getDate()-i);
+    const key=_dayKey(d),e=bucket[key]||{added:[],recs:[],sts:[]};
+    arr.push({key,date:(d.getMonth()+1)+'/'+d.getDate(),wd:_WD[d.getDay()],added:e.added,recs:e.recs,sts:e.sts,total:e.added.length+e.recs.length+e.sts.length});
+  }
+  return arr;
+}
+function _tglDay(i){
+  const el=document.getElementById('daydet-'+i);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
+/* ── 统计 + 数据看板增强 ── */
+function ss2(){
+  const PERS=['我','你','他'],BRDS=['美团','怪兽'],STS=['正常','满仓','离线','空仓'];
+  function c(p,b,s){
+    return pts.filter(x=>(!p||(x.person||'我')===p)&&(!b||(x.brand||'美团')===b)&&(!s||(x.status||'正常')===s)).length;
+  }
+  function render(filter){
+    let h='';
+    h+=`<div class="st-tabs">${['全部',...PERS].map(x=>`<div class="st-tab${x===filter?' on':''}" onclick="window._ssr('${x}')">${x}</div>`).join('')}</div>`;
+
+    // ===== 每日活动（近30天） =====
+    const daily=_buildDaily(30);
+    h+='<div class="db-card"><div class="db-card-title">每日活动 · 近30天</div>';
+    daily.forEach((x,i)=>{
+      const subs=[];
+      if(x.added.length)subs.push('新增'+x.added.length);
+      if(x.recs.length)subs.push('记录'+x.recs.length);
+      if(x.sts.length)subs.push('状态'+x.sts.length);
+      let det='';
+      if(x.total){
+        det=x.added.map(a=>'<div class="dd add"><b>新增</b> '+esc(a)+'</div>').join('')
+           +x.recs.map(r=>'<div class="dd rec"><b>记录</b> '+esc(r.n)+'：'+esc(r.t)+'</div>').join('')
+           +x.sts.map(s=>'<div class="dd st"><b>状态</b> '+esc(s.n)+' '+esc(s.f)+'→'+esc(s.t)+(s.note?'（'+esc(s.note)+'）':'')+'</div>').join('');
+      }
+      h+='<div class="day-item'+(x.total?' has':'')+'" onclick="_tglDay('+i+')"><div class="day-row"><span class="day-date">'+x.date+'<small>周'+x.wd+'</small></span><span class="day-sub">'+(subs.length?subs.join(' · '):'无活动')+'</span><span class="day-total">'+x.total+'</span></div>'+(det?'<div class="day-det" id="daydet-'+i+'">'+det+'</div>':'')+'</div>';
+    });
+    h+='</div>';
+
+    // ===== 数据看板增强 =====
+    const todayKey=_dayKey(new Date());
+    const todayNew=pts.filter(p=>_timeDayKey(p.time)===todayKey).length;
+
+    // 本周每日新增趋势
+    const now=new Date(),weekStart=new Date(now);
+    weekStart.setDate(now.getDate()-now.getDay());
+    const weekDays=['日','一','二','三','四','五','六'];
+    let weekData=[];
+    for(let i=0;i<7;i++){
+      const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);
+      const key=_dayKey(d);
+      const cnt=pts.filter(p=>_timeDayKey(p.time)===key).length;
+      weekData.push({label:'周'+weekDays[d.getDay()],cnt,full:key});
+    }
+    const maxWeek=Math.max(...weekData.map(x=>x.cnt),1);
+
+    // 最近7天处理记录
+    let recData=[];
+    for(let i=6;i>=0;i--){
+      const d=new Date();d.setDate(d.getDate()-i);
+      const key=_dayKey(d);
+      let recCnt=0;
+      pts.forEach(p=>(p.records||[]).forEach(r=>{if(_timeDayKey(r.time)===key)recCnt++}));
+      recData.push({label:d.getMonth()+1+'/'+d.getDate(),cnt:recCnt});
+    }
+    const maxRec=Math.max(...recData.map(x=>x.cnt),1);
+
+    // 状态分布
+    const stCnt=STS.map(s=>({label:s,cnt:c(null,null,s),color:ST[s]}));
+    const totalSt=stCnt.reduce((a,b)=>a+b.cnt,0);
+    const pieDeg=totalSt?stCnt.map(x=>(x.cnt/totalSt*360)).map((d,i)=>({...stCnt[i],deg:d})):[];
+    let cumDeg=0;
+    const pieStops=pieDeg.map(x=>{const s=`${x.color} ${cumDeg}deg ${cumDeg+x.deg}deg`;cumDeg+=x.deg;return s}).join(', ');
+
+    // 品牌分布
+    const brCnt=BRDS.map(b=>({label:b,cnt:c(null,b,null),color:BR[b]}));
+    const totalBr=brCnt.reduce((a,b)=>a+b.cnt,0);
+    const brPieDeg=totalBr?brCnt.map(x=>(x.cnt/totalBr*360)).map((d,i)=>({...brCnt[i],deg:d})):[];
+    let cumDeg2=0;
+    const brPieStops=brPieDeg.map(x=>{const s=`${x.color} ${cumDeg2}deg ${cumDeg2+x.deg}deg`;cumDeg2+=x.deg;return s}).join(', ');
+
+    // 归属分布
+    const psCnt=PERS.map(p=>({label:p,cnt:c(p,null,null),color:PR[p]}));
+    const totalPs=psCnt.reduce((a,b)=>a+b.cnt,0);
+    const psPieDeg=totalPs?psCnt.map(x=>(x.cnt/totalPs*360)).map((d,i)=>({...psCnt[i],deg:d})):[];
+    let cumDeg3=0;
+    const psPieStops=psPieDeg.map(x=>{const s=`${x.color} ${cumDeg3}deg ${cumDeg3+x.deg}deg`;cumDeg3+=x.deg;return s}).join(', ');
+
+    // 待办统计
+    const todoCnt=pts.filter(p=>p.todo).length;
+
+    h+=`<div class="db-card">
+      <div class="db-card-title">数据概览</div>
+      <div class="db-kpi-row">
+        <div class="db-kpi"><div class="db-kpi-val">${todayNew}</div><div class="db-kpi-label">今日新增</div></div>
+        <div class="db-kpi"><div class="db-kpi-val">${todoCnt}</div><div class="db-kpi-label">待办事项</div></div>
+        <div class="db-kpi"><div class="db-kpi-val">${pts.length}</div><div class="db-kpi-label">总计</div></div>
+      </div>
+    </div>`;
+
+    // 本周趋势
+    h+=`<div class="db-card">
+      <div class="db-card-title">本周新增趋势</div>
+      <div class="db-bar-chart">
+        ${weekData.map(x=>`<div class="db-bar-wrap"><div class="db-bar" style="height:${x.cnt/maxWeek*60}px;background:var(--accent)" title="${x.full}: ${x.cnt}"></div><div class="db-bar-label">${x.label}</div></div>`).join('')}
+      </div>
+    </div>`;
+
+    // 处理记录趋势
+    h+=`<div class="db-card">
+      <div class="db-card-title">最近7天处理记录</div>
+      ${recData.map(x=>`<div class="db-trend-row"><span class="db-trend-label">${x.label}</span><div class="db-trend-bar"><div class="db-trend-fill" style="width:${x.cnt/maxRec*100}%"></div></div><span style="font-size:10px;color:var(--text2);width:20px;text-align:right">${x.cnt}</span></div>`).join('')}
+    </div>`;
+
+    // 饼图
+    h+=`<div class="db-card">
+      <div class="db-card-title">状态分布</div>
+      <div class="db-pie-wrap">
+        <div class="db-pie" style="background:${totalSt?`conic-gradient(${pieStops})`:'rgba(255,255,255,.05)'}"></div>
+        <div class="db-pie-legend">
+          ${stCnt.map(x=>`<div class="db-pie-legend-item"><div class="db-pie-legend-dot" style="background:${x.color}"></div>${x.label} <b>${x.cnt}</b></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    h+=`<div class="db-card">
+      <div class="db-card-title">品牌分布</div>
+      <div class="db-pie-wrap">
+        <div class="db-pie" style="background:${totalBr?`conic-gradient(${brPieStops})`:'rgba(255,255,255,.05)'}"></div>
+        <div class="db-pie-legend">
+          ${brCnt.map(x=>`<div class="db-pie-legend-item"><div class="db-pie-legend-dot" style="background:${x.color}"></div>${x.label} <b>${x.cnt}</b></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    h+=`<div class="db-card">
+      <div class="db-card-title">归属分布</div>
+      <div class="db-pie-wrap">
+        <div class="db-pie" style="background:${totalPs?`conic-gradient(${psPieStops})`:'rgba(255,255,255,.05)'}"></div>
+        <div class="db-pie-legend">
+          ${psCnt.map(x=>`<div class="db-pie-legend-item"><div class="db-pie-legend-dot" style="background:${x.color}"></div>${x.label} <b>${x.cnt}</b></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    // 原有详细统计
+    if(filter==='全部'){
+      h+=`<div class="st-sum" style="margin-top:12px">总计 <b>${pts.length}</b> 个运维点</div>`;
+      h+=`<div class="st-grid3">`;
+      PERS.forEach(p=>{
+        h+=`<div class="st-pcard"><div class="st-phead" style="background:${PR[p]}22;color:${PR[p]}">${p} · ${c(p)}</div>`;
+        BRDS.forEach(b=>{
+          h+=`<div class="st-bcard"><div class="st-bname" style="color:${BR[b]}">${b} <b>${c(p,b)}</b></div><div class="st-brow">`;
+          STS.forEach(s=>{const v=c(p,b,s);h+=`<span class="st-chip${v?' on':''}" style="${v?`background:${ST[s]}22;color:${ST[s]}`:''}">${s} ${v}</span>`;});
+          h+=`</div></div>`;
+        });
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+    }else{
+      h+=`<div class="st-sum" style="margin-top:12px"><span style="color:${PR[filter]}">${filter}</span> · <b>${c(filter)}</b> 个运维点</div>`;
+      h+=`<div class="st-grid2">`;
+      BRDS.forEach(b=>{
+        h+=`<div class="st-bcard2"><div class="st-bname" style="color:${BR[b]}">${b} <b>${c(filter,b)}</b></div>`;
+        STS.forEach(s=>{const v=c(filter,b,s);h+=`<div class="st-row"><span class="st-sdot" style="background:${ST[s]}"></span><span class="st-sname">${s}</span><span class="st-sval">${v}</span></div>`;});
+        h+=`</div>`;
+      });
+      h+=`</div>`;
+    }
+    document.getElementById('sbody').innerHTML=h;
+  }
+  window._ssr=render;
+  render('全部');
+  document.getElementById('sov2').classList.add('open');
+}
+
+/* ── 导出 / 导入 ── */
+function ex(){
+  const blob=new Blob([JSON.stringify({v:1,pts:pts,aP:[...aP],aB:[...aB],aS:[...aS],logs:_logs},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='地推运维_备份_'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  st('备份已下载');
+}
+
+async function im2(){
+  try{
+    const [h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+    _dfh=h;
+    const db=await new Promise((r,j)=>{const q=indexedDB.open('ditui_db',1);q.onupgradeneeded=()=>q.result.createObjectStore('h');q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error)});
+    db.transaction('h','readwrite').objectStore('h').put(h,'df');
+    const f=await h.getFile();
+    const raw=JSON.parse(await f.text());
+    let arr;
+    if(raw.pts&&Array.isArray(raw.pts)){arr=raw.pts;if(raw.aP)aP=new Set(raw.aP);if(raw.aB)aB=new Set(raw.aB);if(raw.aS)aS=new Set(raw.aS);if(raw.logs)_logs=raw.logs}
+    else if(Array.isArray(raw)) arr=raw;
+    else throw new Error('f');
+    let c=0;
+    arr.forEach(p=>{
+      if(p.name&&p.lat&&p.lng){
+        pts.push(ensureFields({...p,id:p.id||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)),brand:p.brand||'美团',status:p.status||'正常',person:p.person||'我',records:p.records||[],time:p.time||new Date().toLocaleString('zh-CN')}));
+        c++;
+      }
+    });
+    if(c===0){st('未识别有效数据','w');return}
+    sv();sf();st(`已导入 ${c} 条，文件已绑定`);
+  }catch(e){st('导入取消或失败','w')}
+}
+
+/* ── Toast ── */
+let _t;
+function st(msg,ty,keep){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(ty==='w'?' w':'');
+  clearTimeout(_t);
+  if(!keep)_t=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* ── 事件绑定 ── */
+document.querySelector('#tb .sbtn').onclick=os;
+document.getElementById('fsearch').onclick=function(){
+  _searchForForm=true;
+  os();
+};
+document.getElementById('bsv').onclick=sP2;document.getElementById('bfc').onclick=cf;
+document.getElementById('bnv').onclick=()=>{const p=pts.find(x=>x.id===di);if(p)onv(p.lat,p.lng,p.name)};
+document.getElementById('bed').onclick=ed;document.getElementById('bdl').onclick=dl;document.getElementById('bdc').onclick=cd;
+document.getElementById('rda').onclick=ar;
+document.getElementById('rdi').addEventListener('keydown',e=>{if(e.key==='Enter')ar()});
+document.getElementById('fov').addEventListener('click',function(e){if(e.target===this)cf()});
+document.getElementById('dov').addEventListener('click',function(e){if(e.target===this)cd()});
+document.getElementById('lbtn').onclick=lm;document.getElementById('statbtn').onclick=ss2;
+document.getElementById('todobtn').onclick=otp;
+document.getElementById('exp-btn').onclick=ex;document.getElementById('imp-btn').onclick=im2;
+document.getElementById('nc').onclick=()=>document.getElementById('nsheet').classList.remove('open');
+document.getElementById('nsheet').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')});
+document.getElementById('sov2').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')});
+document.getElementById('sx').onclick=()=>document.getElementById('sov2').classList.remove('open');
+document.getElementById('ch-cancel').onclick=cancelChoice;
+document.getElementById('chov').addEventListener('click',function(e){if(e.target===this)cancelChoice()});
+
+
+/* ── 坐标转换：WGS-84 → GCJ-02（高德API location参数需要GCJ-02）── */
+function wgs84ToGcj02(lng,lat){
+  const a=6378245.0,ee=0.00669342162296594323;
+  function tL(x,y){
+    let r=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));
+    r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;
+    r+=(20*Math.sin(x*Math.PI)+40*Math.sin(x/3*Math.PI))*2/3;
+    r+=(150*Math.sin(x/12*Math.PI)+300*Math.sin(x/30*Math.PI))*2/3;
+    return r;
+  }
+  function tA(x,y){
+    let r=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));
+    r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;
+    r+=(20*Math.sin(y*Math.PI)+40*Math.sin(y/3*Math.PI))*2/3;
+    r+=(160*Math.sin(y/12*Math.PI)+320*Math.sin(y*Math.PI/30))*2/3;
+    return r;
+  }
+  const rad=lat/180*Math.PI,m=1-ee*Math.sin(rad)*Math.sin(rad),sm=Math.sqrt(m);
+  const dLng=tL(lng-105,lat-35)*180/(a/sm*Math.cos(rad)*Math.PI);
+  const dLat=tA(lng-105,lat-35)*180/(a*(1-ee)/(m*sm)*Math.PI);
+  const rLng=lng+dLng,rLat=lat+dLat;
+  // 迭代修正
+  const rad2=rLat/180*Math.PI,m2=1-ee*Math.sin(rad2)*Math.sin(rad2),sm2=Math.sqrt(m2);
+  const dLng2=tL(rLng-105,rLat-35)*180/(a/sm2*Math.cos(rad2)*Math.PI);
+  const dLat2=tA(rLng-105,rLat-35)*180/(a*(1-ee)/(m2*sm2)*Math.PI);
+  return[rLng+(lng-(rLng-dLng2)),rLat+(lat-(rLat-dLat2))];
+}
+
+/* ── POI 搜索（高德 place/text，精确POI）── */
+let _poiCbId=0, _poiActiveCb=null, _poiActiveScript=null;
+
+function _cancelPoiRequest(){
+  if(_poiActiveScript){_poiActiveScript.remove();_poiActiveScript=null;}
+  if(_poiActiveCb){delete window[_poiActiveCb];_poiActiveCb=null;}
+}
+
+function _renderPoiResults(el,items){
+  // 高德瓦片+高德API均为GCJ-02，直接使用
+  if(!items.length){el.innerHTML='<div class="sn">未找到匹配结果</div>';return}
+  el.innerHTML=items.map(t=>{
+    const nm=t.name||'',addr=t.address||'',dist=t.district||t.adname||'';
+    const nmE=esc(nm),adE=esc(addr),dtE=esc(dist);
+    const parts=t.location.split(',');
+    const lng=parseFloat(parts[0]),lat=parseFloat(parts[1]);
+    return`<div class="sr sr-poi" data-lat="${lat}" data-lng="${lng}" data-valid="1" data-name="${nmE}" data-addr="${adE}"><div class="sric">📍</div><div class="srb"><div class="srn">${nmE}</div><div class="srs">${adE||''}</div></div><span class="srp-dist">${dtE||''}</span></div>`;
+  }).join('');
+  document.querySelectorAll('#sl .sr').forEach(r=>r.onclick=function(){
+    const la=parseFloat(this.dataset.lat),ln=parseFloat(this.dataset.lng);
+    const nm=this.dataset.name||'',addr=this.dataset.addr||'';
+    if(window._searchForForm){
+      cs();
+      pLa=la;pLn=ln;
+      document.getElementById('fn').value=nm;
+      document.getElementById('fa').value=addr;
+      cf();
+      of(la,ln);
+      window._searchForForm=false;
+      return;
+    }
+    // 橙色标记 + 直接弹表单
+    if(window._searchMarker) map.removeLayer(window._searchMarker);
+    window._searchMarker=L.marker([la,ln],{
+      icon:L.divIcon({html:'<div style="width:22px;height:22px;border-radius:50%;background:var(--st-o);border:3px solid #fff;box-shadow:0 2px 10px rgba(255,179,71,.6)"></div>',iconSize:[22,22],iconAnchor:[11,11]})
+    }).addTo(map).bindPopup(`<b>${nm}</b><br>${addr||''}`).openPopup();
+    document.getElementById('fn').value=nm;
+    document.getElementById('fa').value=addr;
+    of(la,ln);
+    map.setView([la,ln],17);cs();
+  });
+}
+
+function searchPOI(keyword){
+  _cancelPoiRequest();
+  const el=document.getElementById('sl');
+  if(!keyword.trim()){el.innerHTML='<div class="sn">输入地点名称搜索</div>';return}
+  el.innerHTML='<div class="sn" style="opacity:.6">搜索中...</div>';
+  const cb='_poiCb'+(_poiCbId++);
+  _poiActiveCb=cb;
+  window[cb]=function(data){
+    delete window[cb];
+    document.getElementById('_poiScript'+cb)?.remove();
+    if(cb!==_poiActiveCb)return;
+    _poiActiveCb=null;_poiActiveScript=null;
+    if(data.status==='1'&&data.pois&&data.pois.length){
+      _renderPoiResults(el,data.pois.filter(t=>t.location&&t.location.includes(',')));
+    }else{el.innerHTML='<div class="sn">未找到匹配地点</div>'}
+  };
+  const s=document.createElement('script');
+  _poiActiveScript=s;
+  s.id='_poiScript'+cb;
+  s.src=`https://restapi.amap.com/v3/place/text?key=${AK}&keywords=${encodeURIComponent(keyword)}&offset=20&output=JSON&callback=${cb}`;
+  s.onerror=function(){delete window[cb];s.remove();el.innerHTML='<div class="sn" style="color:#ff6b81">搜索加载失败</div>'};
+  document.head.appendChild(s);
+}
+
+function fm(t,q){
+  if(!q)return 1;const tx=t.toLowerCase(),qx=q.toLowerCase();
+  if(tx.includes(qx))return 2;
+  let qi=0;for(let i=0;i<tx.length&&qi<qx.length;i++){if(tx[i]===qx[qi])qi++}
+  return qi===qx.length?1:0;
+}
+
+function spRec(query){
+  if(!query.trim())return gf();
+  const q=query.trim();
+  return gf().map(p=>({p,sc:fm(p.name+' '+p.addr,q)})).filter(x=>x.sc>0).sort((a,b)=>b.sc-a.sc).map(x=>x.p);
+}
+
+function renderRecResults(q){
+  const el=document.getElementById('sl'),r=spRec(q);
+  if(!r.length){el.innerHTML='<div class="sn">未找到匹配的运维点</div>';return}
+  el.innerHTML=r.map(p=>{
+    const bc=BR[p.brand]||BR['美团'],sc=ST[p.status]||ST['正常'],pc=PR[p.person]||PR['我'],sm=SS[p.status]||'●';
+    return`<div class="sr" data-id="${p.id}"><div class="sric" style="background:${bc};border:2px solid ${sc}">${sm}</div><div class="srb"><div class="srn">${esc(p.name)}</div><div class="srs">${esc(p.person||'我')} · ${esc(p.brand||'美团')} · ${esc(p.status||'正常')} · ${(p.records||[]).length}条记录${p.todo?' · ☑待办':''}</div></div><span class="srt" style="background:${pc}22;color:${pc}">${esc(p.person)}</span></div>`;
+  }).join('');
+  document.querySelectorAll('#sl .sr').forEach(el=>el.onclick=function(){cs();sd(this.dataset.id)});
+}
+
+function os(){
+  document.getElementById('sov').classList.add('open');srchMode='poi';
+  document.getElementById('spi').value='';
+  document.getElementById('spi').placeholder='搜索地点，快速定位...';
+  document.querySelectorAll('#sov .stab').forEach(e=>e.classList.toggle('on',e.dataset.mode==='poi'));
+  document.getElementById('sl').innerHTML='<div class="sn">输入地点名称搜索</div>';
+  document.getElementById('spi').focus();
+}
+
+function cs(){document.getElementById('sov').classList.remove('open');_searchForForm=false;}
+
+window._shi=function(v){
+  if(srchMode==='poi'){clearTimeout(poiTimer);poiTimer=setTimeout(()=>searchPOI(v.trim()),300)}
+  else renderRecResults(v.trim());
+};
+
+window._shs=function(v){
+  clearTimeout(poiTimer);
+  if(srchMode==='poi')searchPOI(v.trim());
+  else renderRecResults(v.trim());
+};
+
+document.querySelectorAll('#sov .stab').forEach(e=>e.onclick=function(){
+  srchMode=this.dataset.mode;
+  document.querySelectorAll('#sov .stab').forEach(x=>x.classList.toggle('on',x.dataset.mode===srchMode));
+  const inp=document.getElementById('spi');
+  if(srchMode==='poi'){inp.placeholder='搜索地点，快速定位...';inp.value='';document.getElementById('sl').innerHTML='<div class="sn">输入地点名称搜索</div>'}
+  else{inp.placeholder='搜索已有运维点...';inp.value='';renderRecResults('')}
+  inp.focus();
+});
+
+document.getElementById('sov').addEventListener('click',function(e){if(e.target===this)cs()});
+document.getElementById('sc').onclick=cs;
+
+/* ── 初始化 ── */
+im();
+_initFile();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
